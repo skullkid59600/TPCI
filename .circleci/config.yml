@@ -4,9 +4,15 @@ workflow:
   build:
     jobs:
       - build
-      - lint
-      - tu
-      - teste2e
+      - lint:
+          requires:
+            - build
+      - tu:
+          requires:
+            - build
+      - teste2e:
+          requires:
+            - build
 jobs:
   build:
     docker:
