@@ -13,6 +13,12 @@ workflow:
       - teste2e:
           requires:
             - build
+      - dockerfile:
+          requires:
+            - build
+            - lint
+            - teste2e
+            - tu
 jobs:
   build:
     docker:
@@ -63,3 +69,19 @@ jobs:
           key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
       - run:
         command: yarn test:e2e
+  dockerfile:
+    environment:
+      IMAGE_NAME: skullkid59600/my-awesome-ci-expr
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+      - run: yarn start
+      - run: docker image build --tag $IMAGE_NAME:app .
+      - run: docker save -o image $IMAGE_NAME
+      - persist_to_workspace:
+          root: /tmp/dir
+          path:
+            - ./image
