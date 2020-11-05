@@ -1,5 +1,24 @@
 version: 2.1
 # Define the jobs we want to run for this project
+workflow:
+  build:
+    jobs:
+      - build
+      - lint:
+          requires:
+            - build
+      - tu:
+          requires:
+            - build
+      - teste2e:
+          requires:
+            - build
+      - dockerfile:
+          requires:
+            - build
+            - lint
+            - teste2e
+            - tu
 jobs:
   build:
     docker:
@@ -13,3 +32,56 @@ jobs:
           key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
           paths:
             - ./node_modules
+  lint:
+    docker:
+      - image: cimg/node:14.10.1
+    steps:
+      - checkout
+      - restore_cache:
+          key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run: yarn lint & yarn format:check
+
+  tu:
+    docker:
+      - image: cimg/node:14.10.1
+    steps:
+      - checkout
+      - restore_cache:
+          key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run: yarn test:ci
+  teste2e:
+    docker:
+      - image: cimg/node:14.10.1
+        environment:
+          DATABASE_URL: postgres://root:chiara@localhost:5432/circle-test_test
+          JWT_SECRET: ok
+          API_PORT: 3000
+          API_HOST: localhost
+          API_PROTOCOL: http
+      - image: circleci/postgres:9.6.2-alpine
+        environment:
+          POSTGRES_USER: root
+          POSTGRES_BD: circle-test_test
+          POSTEGRES_PASSWORD: chiara
+    steps:
+      - checkout
+      - restore_cache:
+          key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run:
+        command: yarn test:e2e
+  dockerfile:
+    environment:
+      IMAGE_NAME: skullkid59600/my-awesome-ci-expr
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+      - run: yarn start
+      - run: docker image build --tag $IMAGE_NAME:app .
+      - run: docker save -o image $IMAGE_NAME
+      - persist_to_workspace:
+          root: /tmp/dir
+          path:
+            - ./image
