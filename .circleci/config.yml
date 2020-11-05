@@ -1,5 +1,11 @@
 version: 2.1
 # Define the jobs we want to run for this project
+workflow:
+  build:
+    jobs:
+      - build
+      - lint
+      - tu
 jobs:
   build:
     docker:
@@ -13,3 +19,20 @@ jobs:
           key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
           paths:
             - ./node_modules
+  lint:
+    docker:
+      - image: cimg/node:14.10.1
+    steps:
+      - checkout
+      - restore_cache:
+          key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run: yarn lint & yarn format:check
+
+  tu:
+    docker:
+      - image: cimg/node:14.10.1
+    steps:
+      - checkout
+      - restore_cache:
+          key: npm-v1-dependencies-{{ checksum "yarn.lock" }}
+      - run: yarn test:ci
