@@ -19,6 +19,7 @@ workflow:
             - lint
             - teste2e
             - tu
+      - artifact
 jobs:
   build:
     docker:
@@ -85,3 +86,13 @@ jobs:
           root: /tmp/dir
           path:
             - ./image
+  artifact:
+    docker:
+      - image: cimg/node:14.10.1
+    steps:
+      - checkout
+      - run: yarn doc:build
+      - run: ls
+      - store_artifacts:
+          path: doc-server
+          destination: doc-server
